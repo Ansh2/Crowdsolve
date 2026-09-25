@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrowdSolve – Voice of Gujarat</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0f1e;
+      --surface: #0f1629;
+      --surface2: #162040;
+      --border: #1e2d50;
+      --accent: #3b82f6;
+      --accent2: #06b6d4;
+      --accent3: #8b5cf6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --text: #e2e8f0;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── ANIMATED BG ── */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+      pointer-events: none;
+    }
+
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(80px);
+      animation: orbFloat 8s ease-in-out infinite;
+    }
+    .bg-orb-1 {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(59,130,246,0.12), transparent 70%);
+      top: -100px; left: -100px;
+    }
+    .bg-orb-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(139,92,246,0.1), transparent 70%);
+      bottom: -50px; right: -50px;
+      animation-delay: -4s;
+    }
+    .bg-orb-3 {
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(6,182,212,0.08), transparent 70%);
+      top: 50%; left: 50%;
+      animation-delay: -2s;
+    }
+
+    @keyframes orbFloat {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -20px) scale(1.05); }
+      66% { transform: translate(-20px, 15px) scale(0.95); }
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: rgba(10,15,30,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+      animation: slideDown 0.6s ease;
+    }
+
+    @keyframes slideDown {
+      from { transform: translateY(-100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .nav-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: var(--text);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .nav-logo span { color: var(--accent); }
+    .logo-dot {
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100%{opacity:1;transform:scale(1)}
+      50%{opacity:.5;transform:scale(1.3)}
+    }
+
+    .nav-actions { display: flex; gap: 0.75rem; align-items: center; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.55rem 1.2rem;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      font-size: 0.9rem;
+      cursor: pointer;
+      text-decoration: none;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: #2563eb; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(59,130,246,0.4); }
+    .btn-outline {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-dim);
+    }
+    .btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+    /* ── HERO ── */
+    .hero-section {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 8rem 2rem 4rem;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.25);
+      color: var(--accent2);
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      margin-bottom: 2rem;
+      animation: fadeInUp 0.8s ease both;
+    }
+
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(3rem, 8vw, 6rem);
+      font-weight: 800;
+      line-height: 1.05;
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 0.8s ease 0.1s both;
+    }
+
+    .hero-title em {
+      font-style: normal;
+      background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-dim);
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+      animation: fadeInUp 0.8s ease 0.2s both;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeInUp 0.8s ease 0.3s both;
+      margin-bottom: 4rem;
+    }
+
+    .btn-hero {
+      font-size: 1rem;
+      padding: 0.85rem 2rem;
+      border-radius: 10px;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── STATS BAR ── */
+    .stats-row {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      animation: fadeInUp 0.8s ease 0.4s both;
+      margin-bottom: 1rem;
+    }
+    .stat-pill {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      text-align: center;
+      min-width: 130px;
+    }
+    .stat-pill-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .stat-pill-label {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* ── SCROLL INDICATOR ── */
+    .scroll-hint {
+      position: absolute;
+      bottom: 2rem;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      animation: fadeInUp 1s ease 0.8s both;
+    }
+    .scroll-arrow { animation: bounce 2s ease-in-out infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(6px)} }
+
+    /* ── HOW IT WORKS ── */
+    .section {
+      position: relative;
+      z-index: 1;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 5rem 2rem;
+    }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      color: var(--text-muted);
+      font-size: 1rem;
+      max-width: 500px;
+      line-height: 1.7;
+      margin-bottom: 3rem;
+    }
+
+    /* ── STEPS GRID ── */
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+    }
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .step-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(59,130,246,0.05), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .step-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(59,130,246,0.3);
+      box-shadow: 0 12px 40px rgba(59,130,246,0.1);
+    }
+    .step-card:hover::before { opacity: 1; }
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 3rem;
+      font-weight: 800;
+      color: rgba(59,130,246,0.15);
+      line-height: 1;
+      margin-bottom: 0.75rem;
+    }
+    .step-icon { font-size: 1.8rem; margin-bottom: 0.75rem; }
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .step-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+
+    /* ── ROLE CARDS ── */
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem;
+    }
+    .role-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      text-decoration: none;
+      color: var(--text);
+      display: block;
+      transition: all 0.25s;
+      position: relative;
+      overflow: hidden;
+    }
+    .role-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--role-color, var(--accent));
+      transform: scaleX(0);
+      transition: transform 0.3s;
+      transform-origin: left;
+    }
+    .role-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 40px rgba(0,0,0,0.3);
+      border-color: var(--role-color, var(--accent));
+    }
+    .role-card:hover::after { transform: scaleX(1); }
+    .role-card.citizen { --role-color: #10b981; }
+    .role-card.dm { --role-color: #3b82f6; }
+    .role-card.dh { --role-color: #8b5cf6; }
+    .role-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+    .role-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+    .role-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 1rem; }
+    .role-features { list-style: none; }
+    .role-features li {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      padding: 0.3rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .role-features li::before { content: '✓'; color: var(--role-color, var(--accent)); font-weight: 700; }
+
+    /* ── DIVIDER ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 0;
+    }
+
+    /* ── CTA SECTION ── */
+    .cta-section {
+      position: relative;
+      z-index: 1;
+      padding: 6rem 2rem;
+      text-align: center;
+      background: radial-gradient(ellipse at center, rgba(59,130,246,0.08) 0%, transparent 70%);
+    }
+    .cta-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    .cta-sub { color: var(--text-muted); font-size: 1.05rem; margin-bottom: 2.5rem; max-width: 480px; margin-left: auto; margin-right: auto; }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    /* ── USER GREETING ── */
+    #user-greeting {
+      display: none;
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 10px;
+      padding: 0.5rem 1rem;
+      font-size: 0.85rem;
+      color: var(--success);
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── CITIES MARQUEE ── */
+    .cities-bar {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      overflow: hidden;
+      padding: 0.75rem 0;
+    }
+    .cities-track {
+      display: flex;
+      gap: 3rem;
+      animation: marquee 20s linear infinite;
+      white-space: nowrap;
+    }
+    .cities-track span {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+    .cities-track span em {
+      font-style: normal;
+      color: var(--accent);
+      margin-right: 0.3rem;
+    }
+    @keyframes marquee {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+
+    @media (max-width: 600px) {
+      .hero-title { font-size: 2.5rem; }
+      .hero-cta { flex-direction: column; align-items: center; }
+      .stats-row { gap: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="bg-orb bg-orb-1"></div>
+<div class="bg-orb bg-orb-2"></div>
+<div class="bg-orb bg-orb-3"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <span class="logo-dot"></span>Crowd<span>Solve</span>
+    </a>
+    <div class="nav-actions" id="nav-actions">
+      <!-- populated by JS -->
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero-section">
+  <div class="hero-eyebrow">🏙️ Citizen-Powered Governance — Gujarat</div>
+  <h1 class="hero-title">Your City,<br>Your <em>Voice</em></h1>
+  <p class="hero-subtitle">
+    Report local problems, upvote issues that matter, and hold the government accountable — across 5 major cities of Gujarat.
+  </p>
+
+  <div class="hero-cta" id="hero-cta">
+    <!-- populated by JS -->
+  </div>
+
+  <div class="stats-row" id="stats-row">
+    <div class="stat-pill">
+      <div class="stat-pill-num" id="s-total">—</div>
+      <div class="stat-pill-label">Issues Reported</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-num" style="color:var(--success)" id="s-resolved">—</div>
+      <div class="stat-pill-label">Resolved</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-num" style="color:var(--warning)" id="s-progress">—</div>
+      <div class="stat-pill-label">In Progress</div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-num" style="color:var(--accent3)">5</div>
+      <div class="stat-pill-label">Cities Active</div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <span>Scroll to explore</span>
+    <span class="scroll-arrow">↓</span>
+  </div>
+</section>
+
+<!-- CITIES MARQUEE -->
+<div class="cities-bar">
+  <div class="cities-track" id="cities-track">
+    <span><em>📍</em>Ahmedabad</span>
+    <span><em>📍</em>Rajkot</span>
+    <span><em>📍</em>Surat</span>
+    <span><em>📍</em>Vadodara</span>
+    <span><em>📍</em>Anand</span>
+    <span><em>🛣️</em>Roads</span>
+    <span><em>💧</em>Water</span>
+    <span><em>⚡</em>Electricity</span>
+    <span><em>♻️</em>Garbage</span>
+    <span><em>🌳</em>Parks</span>
+    <span><em>🌊</em>Drainage</span>
+    <!-- duplicate for seamless loop -->
+    <span><em>📍</em>Ahmedabad</span>
+    <span><em>📍</em>Rajkot</span>
+    <span><em>📍</em>Surat</span>
+    <span><em>📍</em>Vadodara</span>
+    <span><em>📍</em>Anand</span>
+    <span><em>🛣️</em>Roads</span>
+    <span><em>💧</em>Water</span>
+    <span><em>⚡</em>Electricity</span>
+    <span><em>♻️</em>Garbage</span>
+    <span><em>🌳</em>Parks</span>
+    <span><em>🌊</em>Drainage</span>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section">
+  <div class="section-label">How it works</div>
+  <div class="section-title">From Report to Resolution</div>
+  <p class="section-sub">A transparent, accountable pipeline that connects citizens directly with the right government officials.</p>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-icon">📸</div>
+      <div class="step-title">Citizen Reports</div>
+      <div class="step-desc">Snap a photo, describe the issue, and pin the location. Takes under 2 minutes.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-icon">▲</div>
+      <div class="step-title">Community Upvotes</div>
+      <div class="step-desc">Neighbors upvote issues that affect them, surfacing the most critical problems.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-icon">📋</div>
+      <div class="step-title">DM Assigns</div>
+      <div class="step-desc">The District Magistrate assigns Top 10 issues to the right department head with a formal letter.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-icon">✅</div>
+      <div class="step-title">Tracked & Resolved</div>
+      <div class="step-desc">Progress is tracked publicly. Citizens see when their issue is resolved with proof.</div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ROLES -->
+<div class="section">
+  <div class="section-label">Access Levels</div>
+  <div class="section-title">Login to Access Your Dashboard</div>
+  <p class="section-sub">Different roles have different access. Login to unlock features relevant to your role.</p>
+
+  <div class="roles-grid">
+    <a href="/login" class="role-card citizen">
+      <div class="role-icon">🧑‍🤝‍🧑</div>
+      <div class="role-name">Citizen</div>
+      <div class="role-desc">Report issues in your city and track their progress through to resolution.</div>
+      <ul class="role-features">
+        <li>Report local issues with photos</li>
+        <li>Upvote issues that affect you</li>
+        <li>Comment and follow progress</li>
+        <li>Get notified on updates</li>
+      </ul>
+    </a>
+
+    <a href="/login" class="role-card dm">
+      <div class="role-icon">⚖️</div>
+      <div class="role-name">District Magistrate</div>
+      <div class="role-desc">Oversee all reported issues in your city and delegate to departments.</div>
+      <ul class="role-features">
+        <li>View Top 10 upvoted issues</li>
+        <li>Assign issues to department heads</li>
+        <li>Generate formal assignment letters</li>
+        <li>Monitor overdue deadlines</li>
+      </ul>
+    </a>
+
+    <a href="/login" class="role-card dh">
+      <div class="role-icon">🏛️</div>
+      <div class="role-name">Department Head</div>
+      <div class="role-desc">Manage issues assigned to your department and update progress status.</div>
+      <ul class="role-features">
+        <li>View assigned issues</li>
+        <li>Update issue status</li>
+        <li>Upload resolution proof</li>
+        <li>Track deadlines</li>
+      </ul>
+    </a>
+  </div>
+</div>
+
+<!-- CTA SECTION -->
+<section class="cta-section">
+  <div class="hero-eyebrow" style="margin: 0 auto 1.5rem" id="cta-badge">🚀 Ready to make a difference?</div>
+  <h2 class="cta-title" id="cta-title">Join CrowdSolve Today</h2>
+  <p class="cta-sub" id="cta-sub">Create your account and start reporting issues in your city. It's free and takes 30 seconds.</p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap" id="cta-btns">
+    <a href="/register" class="btn btn-primary btn-hero">Create Account →</a>
+    <a href="/login" class="btn btn-outline btn-hero">Sign In</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <a href="/" style="font-family:'Syne',sans-serif;font-weight:800;color:var(--text);text-decoration:none;font-size:1.1rem">
+    <span style="color:var(--accent)">●</span> CrowdSolve
+  </a>
+  <p style="margin-top:0.5rem">Citizen-Powered Governance for Gujarat · Built with transparency in mind</p>
+</footer>
+
+<script>
+  const TOKEN_KEY = 'cp_token';
+  const USER_KEY = 'cp_user';
+
+  function getUser() {
+    try { return JSON.parse(localStorage.getItem(USER_KEY) || 'null'); } catch { return null; }
+  }
+  function getToken() { return localStorage.getItem(TOKEN_KEY); }
+  function isLoggedIn() { return !!getToken(); }
+  function isDM() { return getUser()?.role === 'district_magistrate'; }
+  function isDH() { return getUser()?.role === 'department_head'; }
+  function isGov() { return isDM() || isDH(); }
+  function isCitizen() { return getUser()?.role === 'citizen'; }
+
+  function logout() {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    window.location.reload();
+  }
+
+  function initNav() {
+    const nav = document.getElementById('nav-actions');
+    const user = getUser();
+
+    if (user) {
+      const roleLabel = isDM() ? '⚖️ DM' : isDH() ? '🏛️ Dept Head' : '🧑 Citizen';
+      nav.innerHTML = `
+        <span style="font-size:0.82rem;color:var(--text-muted);padding:0.4rem 0.8rem;background:var(--surface);border:1px solid var(--border);border-radius:8px">
+          ${roleLabel} · ${user.name.split(' ')[0]}
+        </span>
+        ${isGov() ? `<a href="/dashboard" class="btn btn-primary">📊 Dashboard</a>` : `<a href="/issues" class="btn btn-outline">🗺️ Browse Issues</a>`}
+        ${isCitizen() ? `<a href="/report" class="btn btn-primary">+ Report Issue</a>` : ''}
+        <button onclick="logout()" class="btn btn-ghost">Logout</button>
+      `;
+    } else {
+      nav.innerHTML = `
+        <a href="/login" class="btn btn-outline">Login</a>
+        <a href="/register" class="btn btn-primary">Sign Up Free</a>
+      `;
+    }
+  }
+
+  function initHeroCTA() {
+    const cta = document.getElementById('hero-cta');
+    const user = getUser();
+
+    if (user) {
+      if (isGov()) {
+        cta.innerHTML = `
+          <a href="/dashboard" class="btn btn-primary btn-hero">📊 Go to Dashboard →</a>
+          <a href="/issues" class="btn btn-outline btn-hero">🗺️ Browse Public Issues</a>
+        `;
+      } else {
+        cta.innerHTML = `
+          <a href="/report" class="btn btn-primary btn-hero">+ Report an Issue</a>
+          <a href="/trending" class="btn btn-outline btn-hero">🔥 See Trending</a>
+        `;
+      }
+
+      // Update CTA section at bottom
+      const ctaTitle = document.getElementById('cta-title');
+      const ctaSub = document.getElementById('cta-sub');
+      const ctaBtns = document.getElementById('cta-btns');
+      const ctaBadge = document.getElementById('cta-badge');
+
+      ctaBadge.textContent = `👋 Welcome back, ${user.name.split(' ')[0]}!`;
+      if (isGov()) {
+        ctaTitle.textContent = 'Continue Your Work';
+        ctaSub.textContent = 'Your dashboard is waiting. Check the latest issues, assignments, and updates.';
+        ctaBtns.innerHTML = `<a href="/dashboard" class="btn btn-primary btn-hero">📊 Open Dashboard →</a>`;
+      } else {
+        ctaTitle.textContent = 'Make Your City Better';
+        ctaSub.textContent = 'Report a new issue or browse what\'s happening in your city today.';
+        ctaBtns.innerHTML = `
+          <a href="/report" class="btn btn-primary btn-hero">+ Report Issue →</a>
+          <a href="/trending" class="btn btn-outline btn-hero">🔥 Trending</a>
+        `;
+      }
+    } else {
+      cta.innerHTML = `
+        <a href="/register" class="btn btn-primary btn-hero">Get Started Free →</a>
+        <a href="/login" class="btn btn-outline btn-hero">Sign In</a>
+      `;
+    }
+  }
+
+  async function loadStats() {
+    try {
+      const res = await fetch('/api/issues?limit=1');
+      const data = await res.json();
+      if (data.total !== undefined) {
+        document.getElementById('s-total').textContent = data.total.toLocaleString();
+      }
+      // Fetch completed count
+      const r2 = await fetch('/api/issues?status=completed&limit=1');
+      const d2 = await r2.json();
+      if (d2.total !== undefined) {
+        document.getElementById('s-resolved').textContent = d2.total.toLocaleString();
+      }
+      const r3 = await fetch('/api/issues?status=in-progress&limit=1');
+      const d3 = await r3.json();
+      if (d3.total !== undefined) {
+        document.getElementById('s-progress').textContent = d3.total.toLocaleString();
+      }
+    } catch(e) {
+      // Stats failed silently
+    }
+  }
+
+  // Init
+  initNav();
+  initHeroCTA();
+  loadStats();
+</script>
+</body>
+</html>

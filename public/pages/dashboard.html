@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – CrowdSolve</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    .notif-badge{background:#ef4444;color:#fff;border-radius:999px;font-size:0.7rem;padding:2px 6px;margin-left:4px;font-weight:700}
+    .notif-item{padding:0.75rem;border-bottom:1px solid var(--border);font-size:0.83rem;cursor:pointer}
+    .notif-item:hover{background:rgba(59,130,246,0.06)}
+    .notif-item.unread{background:rgba(59,130,246,0.04);border-left:3px solid var(--accent)}
+    .letter-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
+    .letter-box{background:#fff;color:#111;padding:2rem;border-radius:8px;max-width:700px;width:100%;max-height:80vh;overflow-y:auto;font-family:monospace;font-size:0.82rem;line-height:1.7;white-space:pre-wrap}
+    .assign-modal{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
+    .assign-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;max-width:520px;width:100%;padding:2rem}
+    .role-badge{display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.73rem;font-weight:700}
+    .role-dm{background:rgba(59,130,246,0.15);color:#3b82f6}
+    .role-dh{background:rgba(139,92,246,0.15);color:#8b5cf6}
+    .role-citizen{background:rgba(16,185,129,0.15);color:#10b981}
+    .overdue-badge{background:#fef3c7;color:#b45309;border:1px solid #fcd34d;border-radius:6px;padding:2px 8px;font-size:0.73rem;font-weight:700}
+  </style>
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><span class="logo-dot"></span>Crowd<span>Solve</span></a>
+    <div class="nav-links">
+      <a href="/issues">Public View</a>
+      <div id="notif-btn" style="position:relative;cursor:pointer;padding:0.4rem 0.75rem;border:1px solid var(--border);border-radius:8px;font-size:0.85rem" onclick="toggleNotifications()">
+        🔔 <span id="notif-count" style="display:none" class="notif-badge">0</span>
+      </div>
+      <div id="nav-auth" style="display:flex;gap:0.75rem;align-items:center"></div>
+    </div>
+  </div>
+</nav>
+
+<!-- Notifications Dropdown -->
+<div id="notif-dropdown" style="display:none;position:fixed;top:60px;right:1rem;width:360px;background:var(--surface);border:1px solid var(--border);border-radius:12px;z-index:200;box-shadow:0 8px 32px rgba(0,0,0,0.3);max-height:420px;overflow-y:auto">
+  <div style="padding:1rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+    <span style="font-weight:700;font-size:0.9rem">Notifications</span>
+    <button onclick="markAllRead()" style="font-size:0.75rem;color:var(--accent);background:none;border:none;cursor:pointer">Mark all read</button>
+  </div>
+  <div id="notif-list"></div>
+</div>
+
+<div class="dashboard-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-title">Dashboard</div>
+    <button class="sidebar-link active" onclick="showSection('overview', this)">📊 Overview</button>
+    <button class="sidebar-link" onclick="showSection('issues', this)">📋 All Issues</button>
+    <button class="sidebar-link" onclick="showSection('pending', this)">⏳ Pending</button>
+    <button class="sidebar-link" onclick="showSection('inprogress', this)">🔄 In Progress</button>
+    <button class="sidebar-link" onclick="showSection('completed', this)">✅ Completed</button>
+
+    <!-- DM-only sections -->
+    <div id="dm-sidebar" style="display:none">
+      <div class="sidebar-title" style="margin-top:1.5rem">District Magistrate</div>
+      <button class="sidebar-link" onclick="showSection('top10assign', this)">📌 Top 10 – Assign</button>
+      <button class="sidebar-link" onclick="showSection('overdue', this)">⚠️ Overdue Issues</button>
+    </div>
+
+    <div class="sidebar-title" style="margin-top:1.5rem">Analytics</div>
+    <button class="sidebar-link" onclick="showSection('analytics', this)">📈 Category Breakdown</button>
+    <button class="sidebar-link" onclick="showSection('topvoted', this)">🔥 Top Voted</button>
+
+    <div style="margin-top:auto;padding-top:2rem">
+      <div id="gov-info" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:1rem;font-size:0.82rem">
+        <div id="gov-role-label" style="color:var(--accent);font-weight:600;margin-bottom:0.3rem">Loading...</div>
+        <div id="gov-name" style="color:var(--text-dim)">Loading...</div>
+        <div id="gov-city" style="color:var(--text-muted);font-size:0.78rem"></div>
+        <div id="gov-dept" style="color:var(--text-muted);font-size:0.78rem"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="dashboard-content">
+
+    <!-- OVERVIEW -->
+    <div id="section-overview">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+        <div>
+          <h1 style="font-family:'Syne',sans-serif;font-size:1.6rem;font-weight:800">City Dashboard</h1>
+          <p id="dashboard-subtitle" style="color:var(--text-muted);font-size:0.88rem;margin-top:0.25rem">Loading...</p>
+        </div>
+        <button class="btn btn-primary" onclick="refreshAll()">↻ Refresh</button>
+      </div>
+
+      <div class="stats-grid" id="stats-grid">
+        <div class="stats-card"><div class="stats-card-label">Total Issues</div><div class="stats-card-value blue" id="s-total">—</div></div>
+        <div class="stats-card"><div class="stats-card-label">Pending</div><div class="stats-card-value orange" id="s-pending">—</div></div>
+        <div class="stats-card"><div class="stats-card-label">In Progress</div><div class="stats-card-value blue" id="s-progress">—</div></div>
+        <div class="stats-card"><div class="stats-card-label">Completed</div><div class="stats-card-value green" id="s-completed">—</div></div>
+        <div class="stats-card"><div class="stats-card-label">Resolution Rate</div><div class="stats-card-value purple" id="s-rate">—</div></div>
+        <div class="stats-card"><div class="stats-card-label" id="s-overdue-label">Citizens Active</div><div class="stats-card-value" id="s-extra" style="color:#ef4444">—</div></div>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem">
+        <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem;font-size:1rem">Resolution Progress</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem">
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--text-muted);margin-bottom:0.3rem"><span>Pending</span><span id="p-pending">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill progress-orange" id="bar-pending" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--text-muted);margin-bottom:0.3rem"><span>In Progress</span><span id="p-progress">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill progress-blue" id="bar-progress" style="width:0%"></div></div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:var(--text-muted);margin-bottom:0.3rem"><span>Completed</span><span id="p-completed">0%</span></div>
+            <div class="progress-bar"><div class="progress-fill progress-green" id="bar-completed" style="width:0%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem">
+          <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem;font-size:1rem">🕐 Recently Reported</h3>
+          <div id="recent-list"></div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem">
+          <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem;font-size:1rem">🔥 Top Upvoted</h3>
+          <div id="top-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ISSUES TABLE -->
+    <div id="section-issues" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem">
+        <h2 id="table-title" style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800">All Issues</h2>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+          <div class="search-bar"><span class="search-icon">🔍</span><input type="text" id="table-search" placeholder="Search..." oninput="debounceTable(this.value)"></div>
+          <select class="form-select" style="width:auto" id="table-priority" onchange="loadTable()">
+            <option value="">All Priorities</option>
+            <option value="critical">🔴 Critical</option>
+            <option value="high">🟠 High</option>
+            <option value="medium">🟡 Medium</option>
+            <option value="low">🟢 Low</option>
+          </select>
+        </div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Title</th><th>Category</th><th>Priority</th><th>Status</th><th>Upvotes</th><th>Reported</th><th>Assigned To</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="issues-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="pagination" id="table-pagination"></div>
+    </div>
+
+    <!-- TOP 10 + ASSIGN (DM only) -->
+    <div id="section-top10assign" style="display:none">
+      <h2 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:0.5rem">📌 Top 10 Issues – Assign to Departments</h2>
+      <p style="color:var(--text-muted);font-size:0.87rem;margin-bottom:1.5rem">These are the most upvoted issues in your city. You can assign them to department heads with a formal letter and deadline.</p>
+      <div id="top10-assign-list"></div>
+    </div>
+
+    <!-- OVERDUE (DM only) -->
+    <div id="section-overdue" style="display:none">
+      <h2 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:0.5rem">⚠️ Overdue Issues</h2>
+      <p style="color:var(--text-muted);font-size:0.87rem;margin-bottom:1.5rem">Issues that have passed their assigned deadline and are still not completed.</p>
+      <div id="overdue-list"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="section-analytics" style="display:none">
+      <h2 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:1.5rem">📈 Category Analytics</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem">
+          <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem;font-size:1rem">Issues by Category</h3>
+          <canvas id="category-chart" height="280"></canvas>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem">
+          <h3 style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:1rem;font-size:1rem">Status Distribution</h3>
+          <canvas id="status-chart" height="280"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOP VOTED -->
+    <div id="section-topvoted" style="display:none">
+      <h2 style="font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:1.5rem">🔥 Top 10 Most Voted Issues</h2>
+      <div id="topvoted-list"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- STATUS MODAL -->
+<div class="modal-overlay" id="status-modal">
+  <div class="modal">
+    <div class="modal-title">Update Issue Status<button class="close-btn" onclick="closeModal()">×</button></div>
+    <input type="hidden" id="modal-issue-id">
+    <div class="form-group">
+      <label class="form-label">New Status</label>
+      <select id="modal-status" class="form-select">
+        <option value="pending">⏳ Pending</option>
+        <option value="in-progress">🔄 In Progress</option>
+        <option value="completed">✅ Completed</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Official Note (visible to citizens)</label>
+      <textarea id="modal-note" class="form-textarea" rows="3" placeholder="e.g. Work order issued, expected completion in 7 days..."></textarea>
+    </div>
+    <div id="proof-upload-section" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Upload Proof of Completion</label>
+        <input type="file" id="modal-proof-files" multiple accept="image/*" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Completion Description</label>
+        <textarea id="modal-proof-desc" class="form-textarea" rows="2" placeholder="Describe what was done..."></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveStatus()">Save Changes</button>
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ASSIGN MODAL -->
+<div class="assign-modal" id="assign-modal" style="display:none">
+  <div class="assign-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+      <h3 style="font-family:'Syne',sans-serif;font-weight:800;font-size:1.1rem">📋 Assign Issue to Department</h3>
+      <button onclick="closeAssignModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--text-muted)">×</button>
+    </div>
+    <div id="assign-issue-title" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:0.75rem;font-size:0.85rem;margin-bottom:1.25rem;color:var(--text-dim)"></div>
+    <input type="hidden" id="assign-issue-id">
+    <div class="form-group">
+      <label class="form-label">Department Head</label>
+      <select id="assign-dept-head" class="form-select">
+        <option value="">Select department head...</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Resolution Deadline</label>
+      <input type="date" id="assign-deadline" class="form-input">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Special Instructions (optional)</label>
+      <textarea id="assign-notes" class="form-textarea" rows="3" placeholder="Any specific instructions for the department..."></textarea>
+    </div>
+    <div style="display:flex;gap:0.75rem">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="submitAssignment()">Send Formal Letter & Assign</button>
+      <button class="btn btn-outline" onclick="closeAssignModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- FORMAL LETTER MODAL -->
+<div class="letter-modal" id="letter-modal" style="display:none">
+  <div style="width:100%;max-width:700px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+      <span style="color:#fff;font-weight:700;font-size:1rem">📄 Formal Assignment Letter</span>
+      <div style="display:flex;gap:0.5rem">
+        <button class="btn btn-primary" style="font-size:0.82rem" onclick="printLetter()">🖨️ Print</button>
+        <button class="btn btn-outline" style="font-size:0.82rem;color:#fff;border-color:#fff" onclick="document.getElementById('letter-modal').style.display='none'">Close</button>
+      </div>
+    </div>
+    <div class="letter-box" id="letter-content"></div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+const user = API.getUser();
+if (!user || (user.role !== 'district_magistrate' && user.role !== 'department_head')) {
+  window.location.href = '/login';
+}
+
+const isDM = user.role === 'district_magistrate';
+const isDH = user.role === 'department_head';
+
+// Show DM-only sidebar
+if (isDM) document.getElementById('dm-sidebar').style.display = 'block';
+
+// Role label
+const roleLabels = { district_magistrate: '🏛️ District Magistrate', department_head: '🏢 Department Head' };
+document.getElementById('gov-role-label').textContent = roleLabels[user.role] || user.role;
+document.getElementById('gov-name').textContent = user.name;
+document.getElementById('gov-city').textContent = '📍 ' + user.city;
+if (user.department) document.getElementById('gov-dept').textContent = '🏷️ ' + user.department.charAt(0).toUpperCase() + user.department.slice(1) + ' Dept';
+
+let categoryChart, statusChart;
+let tableState = { status: null, page: 1, search: '', priority: '', timer: null };
+
+async function refreshAll() {
+  await Promise.all([loadStats(), loadNotifications()]);
+  if (isDM) await loadTop10Assign();
+}
+
+async function loadStats() {
+  try {
+    const data = await API.get('/dashboard/stats');
+    const s = data.stats;
+    document.getElementById('dashboard-subtitle').textContent = `${user.city} – ${user.role === 'district_magistrate' ? 'District Magistrate View' : user.department + ' Department View'}`;
+    document.getElementById('s-total').textContent = s.total;
+    document.getElementById('s-pending').textContent = s.pending;
+    document.getElementById('s-progress').textContent = s.inProgress;
+    document.getElementById('s-completed').textContent = s.completed;
+    document.getElementById('s-rate').textContent = s.resolutionRate + '%';
+
+    if (isDM) {
+      document.getElementById('s-overdue-label').textContent = 'Overdue Issues';
+      document.getElementById('s-extra').textContent = s.overdueCount || 0;
+    } else {
+      document.getElementById('s-overdue-label').textContent = 'Citizens Active';
+      document.getElementById('s-extra').textContent = s.totalUsers;
+      document.getElementById('s-extra').style.color = 'var(--accent)';
+    }
+
+    const total = s.total || 1;
+    const setPct = (id, bar, val) => {
+      const pct = Math.round((val / total) * 100);
+      document.getElementById(id).textContent = pct + '%';
+      document.getElementById(bar).style.width = pct + '%';
+    };
+    setPct('p-pending', 'bar-pending', s.pending);
+    setPct('p-progress', 'bar-progress', s.inProgress);
+    setPct('p-completed', 'bar-completed', s.completed);
+
+    // Recent + top
+    const recentList = document.getElementById('recent-list');
+    recentList.innerHTML = data.recentIssues.map(i => `
+      <div style="padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.83rem">
+        <a href="/issue/${i._id}" style="color:var(--text-dim);font-weight:500">${i.title}</a>
+        <div style="color:var(--text-muted);font-size:0.77rem;margin-top:0.15rem">${i.category} · ${formatDate(i.createdAt)}</div>
+      </div>
+    `).join('');
+
+    const topList = document.getElementById('top-list');
+    topList.innerHTML = data.topIssues.map(i => `
+      <div style="padding:0.5rem 0;border-bottom:1px solid var(--border);font-size:0.83rem">
+        <a href="/issue/${i._id}" style="color:var(--text-dim);font-weight:500">${i.title}</a>
+        <div style="color:var(--text-muted);font-size:0.77rem;margin-top:0.15rem">▲ ${i.upvoteCount} votes · ${i.status}</div>
+      </div>
+    `).join('');
+
+    // Charts
+    updateCharts(data.byCategory, s);
+  } catch(e) { showToast('Failed to load stats', 'error'); }
+}
+
+function updateCharts(byCategory, stats) {
+  const cats = byCategory.map(c => c._id);
+  const counts = byCategory.map(c => c.count);
+  const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16'];
+
+  const catCtx = document.getElementById('category-chart');
+  if (catCtx) {
+    if (categoryChart) categoryChart.destroy();
+    categoryChart = new Chart(catCtx, {
+      type: 'doughnut',
+      data: { labels: cats, datasets: [{ data: counts, backgroundColor: colors }] },
+      options: { plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } }
+    });
+  }
+
+  const statusCtx = document.getElementById('status-chart');
+  if (statusCtx) {
+    if (statusChart) statusChart.destroy();
+    statusChart = new Chart(statusCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Pending', 'In Progress', 'Completed', 'Overdue'],
+        datasets: [{ data: [stats.pending, stats.inProgress, stats.completed, stats.overdueCount || 0],
+          backgroundColor: ['#f59e0b','#3b82f6','#10b981','#ef4444'] }]
+      },
+      options: { plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 11 } } } } }
+    });
+  }
+}
+
+async function loadNotifications() {
+  try {
+    const data = await API.get('/dashboard/notifications');
+    const unread = data.notifications.filter(n => !n.read);
+    const countEl = document.getElementById('notif-count');
+    if (unread.length > 0) { countEl.textContent = unread.length; countEl.style.display = 'inline'; }
+    else countEl.style.display = 'none';
+
+    const list = document.getElementById('notif-list');
+    if (data.notifications.length === 0) {
+      list.innerHTML = '<div style="padding:1rem;text-align:center;color:var(--text-muted);font-size:0.85rem">No notifications</div>';
+      return;
+    }
+    list.innerHTML = data.notifications.map(n => {
+      const icons = { assignment: '📋', deadline_overdue: '⚠️', top10_alert: '🔥', status_update: '✅' };
+      return `<div class="notif-item ${n.read ? '' : 'unread'}" onclick="clickNotif('${n._id}', '${n.issue ? n.issue._id : ''}')">
+        <div style="font-weight:${n.read ? '400' : '600'}">${icons[n.type] || '🔔'} ${n.message}</div>
+        <div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.2rem">${formatDate(n.createdAt)}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+async function clickNotif(id, issueId) {
+  await API.put('/dashboard/notifications/' + id + '/read', {});
+  if (issueId) window.location.href = '/issue/' + issueId;
+  else loadNotifications();
+}
+
+async function markAllRead() {
+  await API.put('/dashboard/notifications/read-all', {});
+  loadNotifications();
+}
+
+function toggleNotifications() {
+  const d = document.getElementById('notif-dropdown');
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+
+// Table
+let currentTableStatus = null;
+function showSection(name, btn) {
+  document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.querySelectorAll('[id^="section-"]').forEach(s => s.style.display = 'none');
+  document.getElementById('section-' + name).style.display = 'block';
+
+  const tableMap = { issues: null, pending: 'pending', inprogress: 'in-progress', completed: 'completed' };
+  if (name in tableMap) {
+    currentTableStatus = tableMap[name];
+    document.getElementById('table-title').textContent = name === 'issues' ? 'All Issues' :
+      name === 'pending' ? '⏳ Pending Issues' : name === 'inprogress' ? '🔄 In Progress' : '✅ Completed Issues';
+    tableState.page = 1;
+    loadTable();
+  }
+  if (name === 'analytics') loadStats();
+  if (name === 'topvoted') loadTopVoted();
+  if (name === 'top10assign') loadTop10Assign();
+  if (name === 'overdue') loadOverdue();
+}
+
+async function loadTable() {
+  const priority = document.getElementById('table-priority').value;
+  let url = `/dashboard/issues?page=${tableState.page}&limit=15`;
+  if (currentTableStatus) url += `&status=${currentTableStatus}`;
+  if (tableState.search) url += `&search=${encodeURIComponent(tableState.search)}`;
+  if (priority) url += `&priority=${priority}`;
+
+  try {
+    const data = await API.get(url);
+    const tbody = document.getElementById('issues-tbody');
+    tbody.innerHTML = data.issues.map((issue, i) => {
+      const isOverdue = issue.status === 'overdue';
+      const assignedTo = issue.assignment && issue.assignment.assignedTo ? issue.assignment.assignedTo.name : '—';
+      return `<tr>
+        <td>${(tableState.page - 1) * 15 + i + 1}</td>
+        <td><a href="/issue/${issue._id}" style="color:var(--accent)">${issue.title}</a> ${isOverdue ? '<span class="overdue-badge">OVERDUE</span>' : ''}</td>
+        <td><span class="category-badge cat-${issue.category}">${issue.category}</span></td>
+        <td>${priorityBadge(issue.priority)}</td>
+        <td>${statusBadge(issue.status)}</td>
+        <td>▲ ${issue.upvoteCount}</td>
+        <td>${formatDate(issue.createdAt)}</td>
+        <td style="font-size:0.8rem;color:var(--text-muted)">${assignedTo}</td>
+        <td>
+          ${isDM ? `<button class="btn btn-outline" style="font-size:0.75rem;padding:0.3rem 0.6rem" onclick="openAssignModal('${issue._id}','${issue.title.replace(/'/g,"\\'").substring(0,60)}')">📋 Assign</button>` : ''}
+          <button class="btn btn-outline" style="font-size:0.75rem;padding:0.3rem 0.6rem" onclick="openModal('${issue._id}','${issue.status}','${(issue.governmentNote||'').replace(/'/g,"\\'")}')">✏️ Status</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // Pagination
+    const pag = document.getElementById('table-pagination');
+    pag.innerHTML = '';
+    for (let p = 1; p <= data.pages; p++) {
+      const btn = document.createElement('button');
+      btn.className = 'page-btn' + (p === tableState.page ? ' active' : '');
+      btn.textContent = p;
+      btn.onclick = () => { tableState.page = p; loadTable(); };
+      pag.appendChild(btn);
+    }
+  } catch(e) { showToast('Failed to load issues', 'error'); }
+}
+
+function debounceTable(val) {
+  tableState.search = val;
+  clearTimeout(tableState.timer);
+  tableState.timer = setTimeout(() => { tableState.page = 1; loadTable(); }, 400);
+}
+
+// Top 10 assign (DM)
+let deptHeads = [];
+async function loadTop10Assign() {
+  try {
+    const [top10, headsData] = await Promise.all([
+      API.get('/dashboard/top10-dm'),
+      API.get('/issues/admin/dept-heads')
+    ]);
+    deptHeads = headsData.heads;
+
+    const el = document.getElementById('top10-assign-list');
+    el.innerHTML = top10.issues.map((issue, i) => {
+      const assigned = issue.assignment && issue.assignment.assignedTo;
+      const isOverdue = issue.status === 'overdue';
+      const deadline = issue.assignment && issue.assignment.deadline ? new Date(issue.assignment.deadline).toLocaleDateString('en-IN') : null;
+      return `
+        <div style="background:var(--surface);border:1px solid ${isOverdue ? '#ef4444' : 'var(--border)'};border-radius:12px;padding:1.25rem;margin-bottom:1rem">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem">
+                <span style="background:var(--accent);color:#fff;font-weight:800;font-size:0.8rem;padding:2px 10px;border-radius:999px">#${i+1}</span>
+                ${priorityBadge(issue.priority)}
+                ${isOverdue ? '<span class="overdue-badge">⚠️ OVERDUE</span>' : ''}
+                ${statusBadge(issue.status)}
+              </div>
+              <a href="/issue/${issue._id}" style="font-size:0.95rem;font-weight:600;color:var(--text-dim)">${issue.title}</a>
+              <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.3rem">▲ ${issue.upvoteCount} votes · ${issue.category} · ${issue.location.address}</div>
+              ${assigned ? `<div style="font-size:0.8rem;color:#10b981;margin-top:0.3rem">✅ Assigned to: ${issue.assignment.assignedTo.name} · Deadline: ${deadline}</div>` : ''}
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-shrink:0;flex-direction:column">
+              <button class="btn btn-primary" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="openAssignModal('${issue._id}','${issue.title.replace(/'/g,"\\'").substring(0,60)}')">
+                ${assigned ? '🔄 Reassign' : '📋 Assign'}
+              </button>
+              ${assigned ? `<button class="btn btn-outline" style="font-size:0.78rem;padding:0.35rem 0.75rem" onclick="viewLetter('${issue._id}')">📄 View Letter</button>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch(e) { showToast('Failed to load top 10', 'error'); }
+}
+
+async function loadOverdue() {
+  try {
+    const data = await API.get('/dashboard/issues?status=overdue');
+    const el = document.getElementById('overdue-list');
+    if (!data.issues.length) {
+      el.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted)">✅ No overdue issues! Great work.</div>';
+      return;
+    }
+    el.innerHTML = data.issues.map(issue => {
+      const deadline = issue.assignment && issue.assignment.deadline ? new Date(issue.assignment.deadline).toLocaleDateString('en-IN') : 'N/A';
+      const deptName = issue.assignment ? issue.assignment.departmentName : 'Unassigned';
+      return `
+        <div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:1.25rem;margin-bottom:1rem">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div style="font-size:0.95rem;font-weight:600;color:var(--text-dim);margin-bottom:0.3rem">${issue.title}</div>
+              <div style="font-size:0.8rem;color:var(--text-muted)">Department: <b style="color:#ef4444">${deptName}</b> · Deadline was: <b style="color:#ef4444">${deadline}</b></div>
+              <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem">▲ ${issue.upvoteCount} votes · ${issue.category}</div>
+            </div>
+            <button class="btn btn-primary" style="font-size:0.78rem" onclick="openAssignModal('${issue._id}','${issue.title.replace(/'/g,"\\'").substring(0,60)}')">🔄 Reassign</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch(e) {}
+}
+
+async function loadTopVoted() {
+  try {
+    const data = await API.get('/dashboard/top10-dm');
+    const el = document.getElementById('topvoted-list');
+    el.innerHTML = data.issues.map((issue, i) => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1rem;display:flex;align-items:center;gap:1rem">
+        <div style="font-size:1.8rem;font-weight:900;color:var(--accent);min-width:2.5rem;text-align:center">${i+1}</div>
+        <div style="flex:1">
+          <a href="/issue/${issue._id}" style="font-size:0.93rem;font-weight:600;color:var(--text-dim)">${issue.title}</a>
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.2rem">▲ ${issue.upvoteCount} votes · ${issue.category} · ${statusBadge(issue.status)}</div>
+        </div>
+        ${isDM ? `<button class="btn btn-outline" style="font-size:0.78rem" onclick="openAssignModal('${issue._id}','${issue.title.replace(/'/g,"\\'").substring(0,60)}')">📋 Assign</button>` : ''}
+      </div>
+    `).join('');
+  } catch(e) {}
+}
+
+// Assign Modal
+async function openAssignModal(issueId, title) {
+  document.getElementById('assign-issue-id').value = issueId;
+  document.getElementById('assign-issue-title').textContent = '📋 ' + title;
+
+  // Default deadline: 30 days from now
+  const d = new Date(); d.setDate(d.getDate() + 30);
+  document.getElementById('assign-deadline').value = d.toISOString().split('T')[0];
+  document.getElementById('assign-notes').value = '';
+
+  // Always fetch dept heads fresh so DM can assign from any section
+  const sel = document.getElementById('assign-dept-head');
+  sel.innerHTML = '<option value="">⏳ Loading department heads...</option>';
+  document.getElementById('assign-modal').style.display = 'flex';
+
+  try {
+    const headsData = await API.get('/issues/admin/dept-heads');
+    deptHeads = headsData.heads;
+    if (deptHeads.length === 0) {
+      sel.innerHTML = '<option value="">⚠️ No department heads found for your city</option>';
+    } else {
+      sel.innerHTML = '<option value="">Select department head...</option>' +
+        deptHeads.map(h => `<option value="${h._id}">${h.name} – ${h.department} dept</option>`).join('');
+    }
+  } catch(e) {
+    sel.innerHTML = '<option value="">❌ Failed to load – check your login session</option>';
+    showToast('Failed to load department heads: ' + e.message, 'error');
+  }
+}
+function closeAssignModal() { document.getElementById('assign-modal').style.display = 'none'; }
+
+async function submitAssignment() {
+  const issueId = document.getElementById('assign-issue-id').value;
+  const departmentHeadId = document.getElementById('assign-dept-head').value;
+  const deadline = document.getElementById('assign-deadline').value;
+  const notes = document.getElementById('assign-notes').value;
+
+  if (!departmentHeadId || !deadline) { showToast('Please select a department head and deadline', 'error'); return; }
+
+  try {
+    const data = await API.put('/issues/' + issueId + '/assign', { departmentHeadId, deadline, notes });
+    closeAssignModal();
+    showToast('Issue assigned! Formal letter generated.');
+
+    // Show the formal letter
+    document.getElementById('letter-content').textContent = data.formalLetter;
+    document.getElementById('letter-modal').style.display = 'flex';
+
+    refreshAll();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+async function viewLetter(issueId) {
+  try {
+    const data = await API.get('/issues/' + issueId);
+    if (data.issue.assignment && data.issue.assignment.formalLetter) {
+      document.getElementById('letter-content').textContent = data.issue.assignment.formalLetter;
+      document.getElementById('letter-modal').style.display = 'flex';
+    } else {
+      showToast('No letter found for this issue', 'error');
+    }
+  } catch(e) { showToast('Failed to load letter', 'error'); }
+}
+
+function printLetter() {
+  const content = document.getElementById('letter-content').textContent;
+  const w = window.open('', '_blank');
+  w.document.write(`<pre style="font-family:monospace;font-size:13px;padding:2rem;line-height:1.7">${content}</pre>`);
+  w.print();
+}
+
+// Status modal
+function openModal(issueId, status, note) {
+  document.getElementById('modal-issue-id').value = issueId;
+  document.getElementById('modal-status').value = status;
+  document.getElementById('modal-note').value = note;
+  document.getElementById('proof-upload-section').style.display = status === 'completed' ? 'block' : 'none';
+  document.getElementById('modal-status').onchange = function() {
+    document.getElementById('proof-upload-section').style.display = this.value === 'completed' ? 'block' : 'none';
+  };
+  document.getElementById('status-modal').style.display = 'flex';
+}
+function closeModal() { document.getElementById('status-modal').style.display = 'none'; }
+
+async function saveStatus() {
+  const issueId = document.getElementById('modal-issue-id').value;
+  const status = document.getElementById('modal-status').value;
+  const governmentNote = document.getElementById('modal-note').value;
+
+  try {
+    if (status === 'completed' && document.getElementById('modal-proof-files').files.length > 0) {
+      const fd = new FormData();
+      fd.append('description', document.getElementById('modal-proof-desc').value);
+      Array.from(document.getElementById('modal-proof-files').files).forEach(f => fd.append('proofImages', f));
+      await API.uploadForm('/issues/' + issueId + '/proof', fd);
+    } else {
+      await API.put('/issues/' + issueId + '/status', { status, governmentNote });
+    }
+    closeModal();
+    showToast('Status updated successfully!');
+    loadTable();
+    loadStats();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// Helpers
+function priorityBadge(p) {
+  const colors = { critical:'#ef4444', high:'#f97316', medium:'#eab308', low:'#22c55e' };
+  return `<span style="background:${colors[p]}22;color:${colors[p]};border-radius:999px;padding:2px 8px;font-size:0.73rem;font-weight:700">${p}</span>`;
+}
+function statusBadge(s) {
+  const m = { pending:'🟡','in-progress':'🔵', completed:'🟢', assigned:'🔷', overdue:'🔴' };
+  return `<span style="font-size:0.8rem">${m[s]||'⚪'} ${s}</span>`;
+}
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+}
+
+// Init
+refreshAll();
+</script>
+</body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Issue – CrowdSolve</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><span class="logo-dot"></span>Crowd<span>Solve</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/trending" class="hide-mobile">Trending</a>
+      <a href="/top-issues" class="hide-mobile">Top Issues</a>
+      <div id="nav-auth" style="display:flex;gap:0.75rem;align-items:center"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="form-container" style="max-width:720px">
+  <div style="margin-bottom:1.5rem">
+    <div class="hero-eyebrow" style="display:inline-flex">📝 Report a Problem</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;margin-top:0.75rem">Make Your Voice Heard</h1>
+    <p style="color:var(--text-muted);margin-top:0.5rem">Describe the issue in your community. Clear reports get resolved faster.</p>
+  </div>
+
+  <div class="form-card">
+    <div id="alert" class="alert"></div>
+
+    <div class="form-group">
+      <label class="form-label">Issue Title *</label>
+      <input type="text" id="title" class="form-input" placeholder="e.g. Large pothole on MG Road near bus stop">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category *</label>
+        <select id="category" class="form-select">
+          <option value="">Select category</option>
+          <option value="roads">🛣️ Roads & Potholes</option>
+          <option value="water">💧 Water Supply</option>
+          <option value="electricity">⚡ Electricity</option>
+          <option value="sanitation">🗑️ Sanitation</option>
+          <option value="parks">🌳 Parks & Recreation</option>
+          <option value="drainage">🌊 Drainage & Flooding</option>
+          <option value="streetlights">💡 Street Lights</option>
+          <option value="garbage">♻️ Garbage Collection</option>
+          <option value="traffic">🚦 Traffic</option>
+          <option value="other">📌 Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Priority</label>
+        <select id="priority" class="form-select">
+          <option value="low">🟢 Low</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="high">🟠 High</option>
+          <option value="critical">🔴 Critical</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Detailed Description *</label>
+      <textarea id="description" class="form-textarea" placeholder="Describe the issue in detail — when did it start, how bad is it, how many people are affected?" rows="5"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Location Address *</label>
+      <input type="text" id="address" class="form-input" placeholder="e.g. Near Alkapuri Circle, Opposite SBI Bank">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">City *</label>
+        <select id="city" class="form-select">
+          <option value="">Select your city</option>
+          <option value="Ahmedabad">Ahmedabad</option>
+          <option value="Rajkot">Rajkot</option>
+          <option value="Surat">Surat</option>
+          <option value="Vadodara">Vadodara</option>
+          <option value="Anand">Anand</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Pincode</label>
+        <input type="text" id="pincode" class="form-input" placeholder="390001">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Tags (comma separated)</label>
+      <input type="text" id="tags" class="form-input" placeholder="pothole, road, dangerous, accident-prone">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Upload Photos (max 5, 5MB each)</label>
+      <div class="file-upload" onclick="document.getElementById('images').click()">
+        <div style="font-size:2rem">📸</div>
+        <p>Click to upload photos of the issue</p>
+        <p style="font-size:0.78rem;margin-top:0.3rem">JPG, PNG, WebP supported</p>
+        <input type="file" id="images" multiple accept="image/*" style="display:none" onchange="previewImages(this)">
+      </div>
+      <div id="image-preview" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.75rem"></div>
+    </div>
+
+    <div style="display:flex;gap:1rem;margin-top:0.5rem">
+      <button class="btn btn-primary" style="flex:1;justify-content:center;padding:0.85rem" onclick="submitIssue()">
+        🚀 Submit Report
+      </button>
+      <a href="/" class="btn btn-outline" style="padding:0.85rem 1.5rem">Cancel</a>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  // Auth guard
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!API.isLoggedIn()) {
+      showToast('Please login to report issues', 'error');
+      setTimeout(() => window.location.href = '/login', 1500);
+    }
+    // Pre-fill city from user profile
+    const user = API.getUser();
+    if (user && user.city) document.getElementById('city').value = user.city;
+    if (user && user.city) document.getElementById('city').disabled = (user.role === 'citizen');
+  });
+
+  function previewImages(input) {
+    const preview = document.getElementById('image-preview');
+    preview.innerHTML = '';
+    [...input.files].forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        preview.innerHTML += `<img src="${e.target.result}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function submitIssue() {
+    const alertEl = document.getElementById('alert');
+    alertEl.style.display = 'none';
+
+    const title = document.getElementById('title').value.trim();
+    const category = document.getElementById('category').value;
+    const description = document.getElementById('description').value.trim();
+    const address = document.getElementById('address').value.trim();
+    const city = document.getElementById('city').value.trim();
+
+    if (!title || !category || !description || !address || !city) {
+      alertEl.textContent = 'Please fill in all required fields (*)';
+      alertEl.className = 'alert alert-error';
+      alertEl.style.display = 'block'; return;
+    }
+
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('category', category);
+    formData.append('priority', document.getElementById('priority').value);
+    formData.append('description', description);
+    formData.append('address', address);
+    formData.append('city', city);
+    formData.append('pincode', document.getElementById('pincode').value);
+    formData.append('tags', document.getElementById('tags').value);
+
+    const files = document.getElementById('images').files;
+    [...files].forEach(f => formData.append('images', f));
+
+    try {
+      const data = await API.post('/issues', formData, true);
+      showToast('Issue reported successfully!');
+      setTimeout(() => window.location.href = `/issue/${data.issue._id}`, 1000);
+    } catch(e) {
+      alertEl.textContent = e.message;
+      alertEl.className = 'alert alert-error';
+      alertEl.style.display = 'block';
+    }
+  }
+</script>
+</body>
+</html>

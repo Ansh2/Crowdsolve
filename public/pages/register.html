@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register – CrowdSolve</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><span class="logo-dot"></span>Crowd<span>Solve</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <div id="nav-auth" style="display:flex;gap:0.75rem;align-items:center"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="form-container">
+  <div class="form-card">
+    <div class="form-title">Join CrowdSolve</div>
+    <div class="form-subtitle">Create your citizen account to report and upvote issues</div>
+
+    <div id="alert" class="alert alert-error"></div>
+
+    <div class="form-group">
+      <label class="form-label">Full Name</label>
+      <input type="text" id="name" class="form-input" placeholder="Your name">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email Address</label>
+      <input type="email" id="email" class="form-input" placeholder="you@example.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input type="password" id="password" class="form-input" placeholder="Min. 6 characters">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your City</label>
+      <select id="city" class="form-select">
+        <option value="">Select your city</option>
+        <option value="Ahmedabad">Ahmedabad</option>
+        <option value="Rajkot">Rajkot</option>
+        <option value="Surat">Surat</option>
+        <option value="Vadodara">Vadodara</option>
+        <option value="Anand">Anand</option>
+      </select>
+      <p style="font-size:0.78rem;color:var(--text-muted);margin-top:0.3rem">You will only see issues from your city</p>
+    </div>
+
+    <button class="btn btn-primary w-full" style="justify-content:center;padding:0.8rem" onclick="register()">Create Account</button>
+
+    <p style="text-align:center;margin-top:1.5rem;font-size:0.87rem;color:var(--text-muted)">
+      Already have an account? <a href="/login" style="color:var(--accent)">Sign in</a>
+    </p>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  if (API.isLoggedIn()) window.location.href = '/';
+
+  async function register() {
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const city = document.getElementById('city').value;
+    const alertEl = document.getElementById('alert');
+
+    alertEl.style.display = 'none';
+    if (!name || !email || !password || !city) {
+      alertEl.textContent = 'Please fill in all fields';
+      alertEl.style.display = 'block'; return;
+    }
+    if (password.length < 6) {
+      alertEl.textContent = 'Password must be at least 6 characters';
+      alertEl.style.display = 'block'; return;
+    }
+
+    try {
+      const data = await API.post('/auth/register', { name, email, password, city });
+      API.setAuth(data.token, data.user);
+      showToast('Account created! Welcome, ' + data.user.name);
+      setTimeout(() => window.location.href = '/', 600);
+    } catch(e) {
+      alertEl.textContent = e.message;
+      alertEl.style.display = 'block';
+    }
+  }
+</script>
+</body>
+</html>

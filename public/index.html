@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CrowdSolve – Voice of Gujarat</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><span class="logo-dot"></span>Crowd<span>Solve</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/trending" class="hide-mobile">Trending</a>
+      <a href="/top-issues" class="hide-mobile">Top Issues</a>
+      <div id="nav-auth" style="display:flex;gap:0.75rem;align-items:center"></div>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-eyebrow">🏙️ Citizen-Powered Governance – Gujarat</div>
+  <h1>Your City,<br>Your <em>Voice</em></h1>
+  <p>Report local problems, upvote issues that matter, and hold the government accountable — across 5 major cities of Gujarat.</p>
+  <div class="hero-cta">
+    <a href="/report" class="btn btn-primary" style="font-size:1rem;padding:0.75rem 2rem">+ Report an Issue</a>
+    <a href="/trending" class="btn btn-outline" style="font-size:1rem;padding:0.75rem 2rem">🔥 See Trending</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar" id="stats-bar">
+  <div class="stat-card"><div class="stat-number" id="stat-total">—</div><div class="stat-label">Total Issues Reported</div></div>
+  <div class="stat-card"><div class="stat-number" id="stat-resolved" style="color:var(--success)">—</div><div class="stat-label">Issues Resolved</div></div>
+  <div class="stat-card"><div class="stat-number" id="stat-progress" style="color:var(--warning)">—</div><div class="stat-label">In Progress</div></div>
+  <div class="stat-card"><div class="stat-number" id="stat-cities" style="color:var(--accent3)">5</div><div class="stat-label">Cities Active</div></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="section">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem">
+    <h2 class="section-title" id="section-heading">Issues in <span id="city-label">All Cities</span></h2>
+    <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+      <!-- City Selector -->
+      <select class="form-select" style="width:auto" onchange="filterCity(this.value)" id="city-select">
+        <option value="">All Cities</option>
+        <option value="Ahmedabad">Ahmedabad</option>
+        <option value="Rajkot">Rajkot</option>
+        <option value="Surat">Surat</option>
+        <option value="Vadodara">Vadodara</option>
+        <option value="Anand">Anand</option>
+      </select>
+      <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="search" placeholder="Search issues..." oninput="debounceSearch(this.value)">
+      </div>
+      <select class="form-select" style="width:auto" onchange="filterSort(this.value)" id="sort-select">
+        <option value="">Latest</option>
+        <option value="trending">Trending</option>
+        <option value="oldest">Oldest</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- CATEGORY FILTERS -->
+  <div class="filters">
+    <button class="filter-btn active" onclick="filterCategory('', this)">All</button>
+    <button class="filter-btn" onclick="filterCategory('roads', this)">🛣️ Roads</button>
+    <button class="filter-btn" onclick="filterCategory('water', this)">💧 Water</button>
+    <button class="filter-btn" onclick="filterCategory('electricity', this)">⚡ Electricity</button>
+    <button class="filter-btn" onclick="filterCategory('traffic', this)">🚦 Traffic</button>
+    <button class="filter-btn" onclick="filterCategory('sanitation', this)">🗑️ Sanitation</button>
+    <button class="filter-btn" onclick="filterCategory('parks', this)">🌳 Parks</button>
+    <button class="filter-btn" onclick="filterCategory('drainage', this)">🌊 Drainage</button>
+    <button class="filter-btn" onclick="filterCategory('garbage', this)">♻️ Garbage</button>
+  </div>
+
+  <div id="status-filters" class="filters">
+    <button class="filter-btn active" onclick="filterStatus('', this)">All Status</button>
+    <button class="filter-btn" onclick="filterStatus('pending', this)">⏳ Pending</button>
+    <button class="filter-btn" onclick="filterStatus('in-progress', this)">🔄 In Progress</button>
+    <button class="filter-btn" onclick="filterStatus('assigned', this)">📋 Assigned</button>
+    <button class="filter-btn" onclick="filterStatus('completed', this)">✅ Completed</button>
+  </div>
+
+  <div id="issues-grid" class="issues-grid">
+    <div class="spinner"></div>
+  </div>
+
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  let currentPage = 1, currentCategory = '', currentStatus = '', currentSort = '', currentSearch = '', currentCity = '', searchTimer;
+
+  // If logged in as citizen, default to their city
+  const loggedUser = API.getUser();
+  if (loggedUser && loggedUser.role === 'citizen') {
+    currentCity = loggedUser.city;
+    document.getElementById('city-select').value = loggedUser.city;
+    document.getElementById('city-label').textContent = loggedUser.city;
+  }
+
+  async function loadStats() {
+    try {
+      const cityParam = currentCity ? `&city=${encodeURIComponent(currentCity)}` : '';
+      const [allRes, resolvedRes, progressRes] = await Promise.all([
+        fetch(`/api/issues?limit=1${cityParam}`),
+        fetch(`/api/issues?status=completed&limit=1${cityParam}`),
+        fetch(`/api/issues?status=in-progress&limit=1${cityParam}`)
+      ]);
+      const all = await allRes.json();
+      const resolved = await resolvedRes.json();
+      const progress = await progressRes.json();
+      document.getElementById('stat-total').textContent = all.total || 0;
+      document.getElementById('stat-resolved').textContent = resolved.total || 0;
+      document.getElementById('stat-progress').textContent = progress.total || 0;
+    } catch(e) {}
+  }
+
+  async function loadIssues() {
+    const grid = document.getElementById('issues-grid');
+    grid.innerHTML = '<div class="spinner"></div>';
+
+    const params = new URLSearchParams({
+      page: currentPage, limit: 9,
+      ...(currentCity && { city: currentCity }),
+      ...(currentCategory && { category: currentCategory }),
+      ...(currentStatus && { status: currentStatus }),
+      ...(currentSort && { sort: currentSort }),
+      ...(currentSearch && { search: currentSearch })
+    });
+
+    try {
+      const data = await fetch(`/api/issues?${params}`).then(r => r.json());
+      if (!data.issues || data.issues.length === 0) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">📭</div><p>No issues found. Be the first to report one!</p><a href="/report" class="btn btn-primary mt-2">+ Report Issue</a></div>`;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+      grid.innerHTML = data.issues.map(i => renderIssueCard(i)).join('');
+      renderPagination(data.pages);
+    } catch(e) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><p>Failed to load issues. Please try again.</p></div>`;
+    }
+  }
+
+  function renderPagination(pages) {
+    const pag = document.getElementById('pagination');
+    if (pages <= 1) { pag.innerHTML = ''; return; }
+    let html = '';
+    for (let i = 1; i <= pages; i++) {
+      html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    pag.innerHTML = html;
+  }
+
+  function goPage(p) { currentPage = p; loadIssues(); window.scrollTo({top:300,behavior:'smooth'}); }
+
+  function filterCity(city) {
+    currentCity = city; currentPage = 1;
+    document.getElementById('city-label').textContent = city || 'All Cities';
+    loadStats(); loadIssues();
+  }
+
+  function filterCategory(cat, btn) {
+    currentCategory = cat; currentPage = 1;
+    document.querySelectorAll('.filters:first-of-type .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadIssues();
+  }
+
+  function filterStatus(status, btn) {
+    currentStatus = status; currentPage = 1;
+    document.querySelectorAll('#status-filters .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    loadIssues();
+  }
+
+  function filterSort(sort) { currentSort = sort; currentPage = 1; loadIssues(); }
+
+  function debounceSearch(val) {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { currentSearch = val; currentPage = 1; loadIssues(); }, 400);
+  }
+
+  loadStats();
+  loadIssues();
+</script>
+</body>
+</html>

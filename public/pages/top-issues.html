@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Top 10 Issues – CrowdSolve</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<nav>
+  <div class="nav-inner">
+    <a href="/" class="nav-logo"><span class="logo-dot"></span>Crowd<span>Solve</span></a>
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/trending" class="hide-mobile">Trending</a>
+      <a href="/top-issues" class="active">Top Issues</a>
+      <div id="nav-auth" style="display:flex;gap:0.75rem;align-items:center"></div>
+    </div>
+  </div>
+</nav>
+
+<div class="section" style="max-width:960px">
+  <div class="top-issues-header">
+    <div class="hero-eyebrow" style="display:inline-flex;margin-bottom:1rem">🏆 Leaderboard</div>
+    <h1 style="font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800">Top 10 Issues in Your City</h1>
+    <p style="color:var(--text-muted);margin-top:0.75rem;margin-bottom:1.5rem">The most critical, most-upvoted problems demanding immediate government attention</p>
+
+    <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap">
+      <input type="text" id="city-input" class="form-input" style="max-width:280px;text-align:center" placeholder="Enter city (e.g. Vadodara)" value="">
+      <button class="btn btn-primary" onclick="loadTop10()">🔍 Show Top Issues</button>
+    </div>
+  </div>
+
+  <!-- LEGEND -->
+  <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.5rem;padding:1rem;background:var(--surface);border:1px solid var(--border);border-radius:12px">
+    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.83rem">
+      <span style="width:12px;height:12px;background:var(--warning);border-radius:50%;display:inline-block"></span>
+      <span style="color:var(--text-muted)">Pending</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.83rem">
+      <span style="width:12px;height:12px;background:var(--accent);border-radius:50%;display:inline-block"></span>
+      <span style="color:var(--text-muted)">In Progress</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.83rem">
+      <span style="width:12px;height:12px;background:var(--success);border-radius:50%;display:inline-block"></span>
+      <span style="color:var(--text-muted)">Completed</span>
+    </div>
+    <div style="margin-left:auto;font-size:0.83rem;color:var(--text-muted)">Click any issue to view full details & proof</div>
+  </div>
+
+  <!-- SUMMARY STRIP -->
+  <div id="summary-strip" style="display:none;display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem">
+    <div style="flex:1;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;padding:0.9rem;text-align:center;min-width:120px">
+      <div id="sum-pending" style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--warning)">0</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem">Pending</div>
+    </div>
+    <div style="flex:1;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:10px;padding:0.9rem;text-align:center;min-width:120px">
+      <div id="sum-progress" style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--accent)">0</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem">In Progress</div>
+    </div>
+    <div style="flex:1;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:0.9rem;text-align:center;min-width:120px">
+      <div id="sum-completed" style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--success)">0</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem">Completed</div>
+    </div>
+    <div style="flex:1;background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.2);border-radius:10px;padding:0.9rem;text-align:center;min-width:120px">
+      <div id="sum-resolution" style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--accent3)">0%</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.2rem">Resolution Rate</div>
+    </div>
+  </div>
+
+  <div id="top-list">
+    <div class="empty-state">
+      <div class="empty-icon">🏙️</div>
+      <p>Enter your city name above to see the top 10 most critical issues.</p>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script>
+  // Pre-fill city from user
+  document.addEventListener('DOMContentLoaded', () => {
+    const user = API.getUser();
+    if (user && user.city) {
+      document.getElementById('city-input').value = user.city;
+      loadTop10();
+    }
+  });
+
+  async function loadTop10() {
+    const city = document.getElementById('city-input').value.trim();
+    const list = document.getElementById('top-list');
+    list.innerHTML = '<div class="spinner"></div>';
+
+    try {
+      const data = await fetch(`/api/issues/top10${city ? '?city=' + encodeURIComponent(city) : ''}`).then(r => r.json());
+      const issues = data.issues || [];
+
+      if (!issues.length) {
+        list.innerHTML = `<div class="empty-state"><div class="empty-icon">🏖️</div><p>No issues reported ${city ? 'in ' + city : ''} yet. <a href="/report" style="color:var(--accent)">Be the first!</a></p></div>`;
+        return;
+      }
+
+      // Summary
+      const pending = issues.filter(i => i.status === 'pending').length;
+      const inProgress = issues.filter(i => i.status === 'in-progress').length;
+      const completed = issues.filter(i => i.status === 'completed').length;
+      document.getElementById('sum-pending').textContent = pending;
+      document.getElementById('sum-progress').textContent = inProgress;
+      document.getElementById('sum-completed').textContent = completed;
+      document.getElementById('sum-resolution').textContent = issues.length > 0 ? Math.round((completed/issues.length)*100) + '%' : '0%';
+      document.getElementById('summary-strip').style.display = 'flex';
+
+      list.innerHTML = issues.map((issue, idx) => renderRankCard(issue, idx + 1)).join('');
+    } catch(e) {
+      list.innerHTML = `<div class="empty-state"><p>Failed to load. Please try again.</p></div>`;
+    }
+  }
+
+  function renderRankCard(issue, rank) {
+    const rankClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+    const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+
+    const proofBadge = issue.proof && issue.proof.images && issue.proof.images.length > 0
+      ? `<span style="background:rgba(16,185,129,0.15);color:var(--success);border-radius:100px;padding:0.2rem 0.6rem;font-size:0.73rem;font-weight:600">📸 Proof Available</span>` : '';
+
+    const statusColor = issue.status === 'pending' ? 'var(--warning)' : issue.status === 'in-progress' ? 'var(--accent)' : 'var(--success)';
+    const statusEmoji = issue.status === 'pending' ? '⏳' : issue.status === 'in-progress' ? '🔄' : '✅';
+
+    return `
+    <a href="/issue/${issue._id}" class="rank-card" style="border-left:4px solid ${statusColor}">
+      <div class="rank-number ${rankClass}">${rankEmoji}</div>
+      <div class="rank-info">
+        <div class="rank-title">${escHtml(issue.title)}</div>
+        <div class="rank-meta" style="margin-bottom:0.4rem">
+          <span class="category-badge" style="font-size:0.73rem">${categoryIcon(issue.category)} ${issue.category}</span>
+          <span class="status-badge ${statusClass(issue.status)}" style="font-size:0.73rem">${statusEmoji} ${statusLabel(issue.status)}</span>
+          ${proofBadge}
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-muted)">
+          📍 ${escHtml(issue.location?.address || '')} · ${escHtml(issue.location?.city || '')}
+          · 💬 ${issue.comments?.length || 0} comments
+          · ${timeAgo(issue.createdAt)}
+        </div>
+        ${issue.governmentNote ? `<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--accent);background:rgba(59,130,246,0.08);border-radius:6px;padding:0.4rem 0.7rem">🏛️ ${escHtml(issue.governmentNote)}</div>` : ''}
+        ${issue.status === 'completed' && issue.resolvedAt ? `<div style="font-size:0.78rem;color:var(--success);margin-top:0.35rem">✅ Resolved on ${new Date(issue.resolvedAt).toLocaleDateString()}</div>` : ''}
+
+        <!-- Status Progress Indicator -->
+        <div style="margin-top:0.75rem">
+          <div style="display:flex;gap:0;height:4px;border-radius:99px;overflow:hidden;background:var(--border)">
+            <div style="width:${issue.status === 'pending' ? '15' : issue.status === 'in-progress' ? '55' : '100'}%;background:${statusColor};transition:width 1s ease;border-radius:99px"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:0.3rem;font-size:0.7rem;color:var(--text-muted)">
+            <span>Reported</span><span>In Progress</span><span>Resolved</span>
+          </div>
+        </div>
+      </div>
+      <div class="rank-stats">
+        <div class="rank-votes">${issue.upvoteCount || 0}</div>
+        <div class="rank-votes-label">upvotes</div>
+      </div>
+    </a>`;
+  }
+
+  document.getElementById('city-input').addEventListener('keydown', e => { if (e.key === 'Enter') loadTop10(); });
+</script>
+</body>
+</html>
